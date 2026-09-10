@@ -1,0 +1,183 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   SAYBA — Design tokens
+   Tiga warna dasar: putih tulang (latar), abu hitam (header, footer, aksen
+   gelap), dan oranye Sayba (tombol utama, harga, border kartu unggulan).
+   ========================================================================== */
+
+@theme {
+  /* --- Putih tulang ------------------------------------------------------ */
+  --color-canvas: #f2efe8;      /* latar halaman */
+  --color-surface: #fbfaf6;     /* kartu */
+  --color-surface-2: #eceae2;   /* blok redup di dalam kartu */
+  --color-surface-3: #e1ded3;   /* pembeda paling kuat */
+
+  /* --- Abu hitam --------------------------------------------------------- */
+  --color-ink: #1a1a1c;         /* header & footer */
+  --color-ink-2: #26262a;       /* blok di dalam area gelap */
+  --color-ink-line: #34343a;    /* garis di area gelap */
+  --color-cream: #f4f1ea;       /* teks di atas abu hitam   13.9:1 */
+  --color-cream-muted: #a8a6a0; /* teks pendukung di gelap   5.6:1 */
+
+  /* --- Garis ------------------------------------------------------------- */
+  --color-line: #e0dcd1;
+  --color-line-strong: #cbc5b7;
+
+  /* --- Teks (kontras diukur di atas --color-surface) --------------------- */
+  --color-fg: #1a1a1c;          /* judul            15.2:1 */
+  --color-fg-body: #3d3d42;     /* isi               9.9:1 */
+  --color-fg-muted: #5f5f66;    /* pendukung         6.4:1 */
+  --color-fg-faint: #86858b;    /* label kecil       3.7:1 — dekoratif saja */
+
+  /* --- Oranye ------------------------------------------------------------ */
+  --color-brand: #f7892e;         /* aksen & ikon (dekoratif) */
+  --color-brand-strong: #c2410c;  /* tombol & teks   5.2:1 di atas putih tulang */
+  --color-brand-hover: #9a3412;
+  --color-brand-soft: #fbf1e6;
+  --color-brand-border: #edb887;  /* border kartu unggulan */
+
+  /* --- Status ------------------------------------------------------------ */
+  --color-success: #15803d;
+  --color-success-soft: #eefaf1;
+  --color-warning: #b45309;
+  --color-warning-soft: #fdf6e7;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fdf0f0;
+
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+
+  --radius-card: 0.875rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-fg-body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Kartu: rata, tanpa bayangan berat — bayangan hanya muncul saat disentuh. */
+.card-surface {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+/* Kartu unggulan: border oranye untuk menarik mata tanpa menambah warna blok. */
+.card-accent {
+  border-color: var(--color-brand-border);
+}
+
+.card-surface-hover {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+.card-surface-hover:hover {
+  border-color: var(--color-brand);
+  box-shadow: 0 1px 2px rgb(26 26 28 / 0.05), 0 10px 26px -14px rgb(26 26 28 / 0.22);
+  transform: translateY(-2px);
+}
+
+/* Latar hangat yang sangat tipis di balik hero */
+.aurora {
+  background-image:
+    radial-gradient(46rem 22rem at 10% -18%, rgb(247 137 46 / 0.1), transparent 62%),
+    radial-gradient(38rem 18rem at 94% -8%, rgb(247 137 46 / 0.06), transparent 60%);
+}
+
+/* Fokus keyboard yang selalu terlihat — penting untuk aksesibilitas */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-strong);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Di dalam area gelap, cincin fokus oranye tua kurang terbaca. */
+.on-ink :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: var(--color-brand);
+}
+
+::selection {
+  background-color: var(--color-brand);
+  color: #fff;
+}
+
+@media (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Rel carousel: geser dengan snap, tanpa pustaka tambahan. */
+.snap-rail {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.snap-rail::-webkit-scrollbar {
+  display: none;
+}
+.snap-rail > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(21 128 61 / 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgb(21 128 61 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(21 128 61 / 0);
+  }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .snap-rail {
+    scroll-behavior: auto;
+  }
+}
