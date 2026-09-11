@@ -13,6 +13,7 @@ export default async function AdminGamesPage() {
     .order('name', { ascending: true });
 
   const games = (data as Game[]) ?? [];
+  const activeGames = games.filter((game) => game.is_active).length;
   const { count } = await supabaseAdmin()
     .from('products')
     .select('id', { count: 'exact', head: true })
@@ -21,11 +22,14 @@ export default async function AdminGamesPage() {
   return (
     <div className="space-y-4">
       <div className="card-surface p-4">
-        <h1 className="text-base font-bold text-fg">Kelola Game</h1>
+        <h1 className="text-base font-bold text-fg">Kelola Brand &amp; Game</h1>
         <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
-          Game baru hasil sinkronisasi selalu dibuat <strong>nonaktif</strong>. Kamu yang memutuskan
-          mana yang tampil di etalase. Aktifkan hanya game yang produknya benar-benar ingin kamu
-          jual — total {games.length} game terdeteksi, {count ?? 0} produk aktif.
+          Brand baru dari kategori yang dikenal — pulsa, paket data, kartu perdana, token listrik,
+          e-wallet, game, voucher, hiburan, tagihan, e-toll — kini <strong>langsung aktif</strong>{' '}
+          setelah sinkronisasi, sehingga etalase terisi sendiri. Hanya kategori &ldquo;Lainnya&rdquo;
+          yang dibuat nonaktif untuk kamu periksa dulu. Saring per kategori di bawah, lalu pakai
+          tombol massal untuk menyalakan atau mematikan sekaligus — total {games.length} brand
+          terdeteksi, {activeGames} di antaranya aktif, dengan {count ?? 0} produk aktif.
         </p>
       </div>
 

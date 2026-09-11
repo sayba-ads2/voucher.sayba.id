@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { ChevronRight, Clock3, ShieldCheck, Zap } from 'lucide-react';
 
 import { OrderForm } from '@/components/order-form';
+import { brandCopy } from '@/lib/brand-copy';
+import { getCategory } from '@/lib/categories';
 import { JsonLd, breadcrumbJsonLd, brandProductJsonLd } from '@/lib/jsonld';
 import {
   getActiveGames,
@@ -32,23 +34,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const products = await getPublicProducts(game.id);
   const cheapest = products.length ? Math.min(...products.map((p) => p.sell_price)) : 0;
+  const copy = brandCopy(game);
 
-  const title =
-    game.seo_title ?? `Top Up ${game.name} Murah — Mulai ${formatRupiah(cheapest)} | Proses Otomatis`;
+  const title = game.seo_title ?? copy.title(formatRupiah(cheapest));
   const description =
     game.seo_description ??
-    `Top up ${game.name} murah dan legal di Pontianak. ${products.length} pilihan nominal mulai ${formatRupiah(cheapest)}, proses otomatis 24 jam, bayar pakai QRIS, DANA, GoPay, OVO, ShopeePay, atau transfer bank. Tanpa login akun game.`;
+    `${copy.intro(products.length, cheapest > 0 ? formatRupiah(cheapest) : '')} ${copy.delivery} Bayar pakai QRIS, DANA, GoPay, OVO, ShopeePay, atau transfer bank. Melayani seluruh Indonesia, otomatis 24 jam.`;
 
   return {
     title,
     description,
-    keywords: game.seo_keywords ?? [
-      `top up ${game.name.toLowerCase()}`,
-      `top up ${game.name.toLowerCase()} murah`,
-      `top up ${game.name.toLowerCase()} pontianak`,
-      `diamond ${game.name.toLowerCase()} murah`,
-      'top up game murah',
-    ],
+    keywords: game.seo_keywords ?? copy.keywords(game.name),
     alternates: { canonical: `/${game.slug}` },
     openGraph: {
       type: 'website',
@@ -73,6 +69,8 @@ export default async function GamePage({ params }: Props) {
 
   const cheapest = products.length ? Math.min(...products.map((p) => p.sell_price)) : 0;
   const howTo = Array.isArray(game.how_to_order) ? game.how_to_order : [];
+  const copy = brandCopy(game);
+  const category = getCategory(game.kind);
 
   return (
     <>
@@ -81,8 +79,8 @@ export default async function GamePage({ params }: Props) {
           brandProductJsonLd(game, products),
           breadcrumbJsonLd([
             { name: 'Beranda', path: '/' },
-            { name: 'Semua Game', path: '/games' },
-            { name: `Top Up ${game.name}`, path: `/${game.slug}` },
+            { name: copy.parent.name, path: copy.parent.path },
+            { name: copy.heading, path: `/${game.slug}` },
           ]),
         ]}
       />
@@ -92,10 +90,14 @@ export default async function GamePage({ params }: Props) {
         <ol className="mx-auto flex max-w-6xl items-center gap-1.5 overflow-x-auto px-4 py-3 text-xs text-fg-faint no-scrollbar">
           <li><Link href="/" className="hover:text-brand-strong">Beranda</Link></li>
           <ChevronRight className="h-3 w-3 shrink-0" aria-hidden />
-          <li><Link href="/games" className="hover:text-brand-strong">Semua Game</Link></li>
+          <li>
+            <Link href={copy.parent.path} className="hover:text-brand-strong">
+              {copy.parent.name}
+            </Link>
+          </li>
           <ChevronRight className="h-3 w-3 shrink-0" aria-hidden />
           <li className="whitespace-nowrap font-semibold text-fg-body" aria-current="page">
-            Top Up {game.name}
+            {game.name}
           </li>
         </ol>
       </nav>
@@ -109,7 +111,7 @@ export default async function GamePage({ params }: Props) {
             </span>
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-extrabold tracking-tight text-fg md:text-3xl">
-                Top Up {game.name} Murah
+                {copy.heading}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-fg-muted">
                 {game.short_description ??
@@ -150,7 +152,9 @@ export default async function GamePage({ params }: Props) {
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           {howTo.length > 0 && (
             <section className="card-surface p-5">
-              <h2 className="text-sm font-bold text-fg">Cara Top Up {game.name}</h2>
+              <h2 className="text-sm font-bold text-fg">
+                Cara {copy.action} {game.name}
+              </h2>
               <ol className="mt-3 space-y-2.5">
                 {howTo.map((step, index) => (
                   <li key={index} className="flex gap-2.5 text-sm text-fg-muted">
@@ -179,41 +183,56 @@ export default async function GamePage({ params }: Props) {
       {/* ============================================================ SEO TEKS */}
       <section className="border-t border-line bg-surface">
         <div className="mx-auto max-w-3xl px-4 py-12">
-          <h2 className="text-lg font-extrabold text-fg">
-            Beli Diamond {game.name} Murah di Pontianak
-          </h2>
+          <h2 className="text-lg font-extrabold text-fg">{copy.seoHeading}</h2>
           <div className="mt-4 space-y-4 text-sm leading-relaxed text-fg-muted">
             <p>
-              {game.name} adalah salah satu game yang paling banyak di-top up pelanggan{' '}
-              {site.name}. Di halaman ini tersedia {products.length} pilihan nominal
-              {cheapest > 0 ? `, mulai dari ${formatRupiah(cheapest)}` : ''}, yang bisa kamu beli
-              kapan saja tanpa perlu mendaftar akun terlebih dahulu.
+              {copy.intro(products.length, cheapest > 0 ? formatRupiah(cheapest) : '')}{' '}
+              {copy.delivery}
             </p>
             <p>
-              Cukup masukkan {game.id_label}
+              Masukkan {game.id_label}
               {game.needs_server_id ? ` dan ${game.server_label}` : ''}, pilih nominalnya, lalu
               selesaikan pembayaran lewat QRIS, DANA, GoPay, OVO, ShopeePay, atau transfer bank
               BCA, BRI, dan Mandiri. Begitu pembayaran masuk, sistem langsung memproses pesanan
-              dan item biasanya sampai di akun kamu dalam hitungan detik.
+              tanpa perlu menunggu admin membalas chat.
             </p>
             <p>
-              Kami melayani gamer di Pontianak, Kubu Raya, Mempawah, Singkawang, dan seluruh
-              Kalimantan Barat — juga pembeli dari luar daerah, karena semua prosesnya online.
-              Bandingkan dulu harganya dengan tempat lain: kami yakin selisihnya terasa.
+              Harga di halaman ini mengikuti harga distributor karena {site.name} terdaftar
+              sebagai mitra reseller resmi. Biaya metode pembayaran, kalau ada, selalu ditulis
+              terpisah sebelum kamu menekan tombol beli — tidak ada potongan yang muncul
+              belakangan. Seluruh prosesnya online, jadi bisa dipakai dari mana saja di
+              Indonesia, kapan saja.
+            </p>
+            <p>
+              Kalau pesanan gagal diproses, dana dikembalikan penuh tanpa potongan. Setiap
+              transaksi punya kode invoice yang bisa kamu lacak sendiri di halaman{' '}
+              <Link href="/cek-pesanan" className="font-medium text-brand-strong underline">
+                Cek Pesanan
+              </Link>
+              .
             </p>
           </div>
 
           <div className="mt-8 rounded-xl border border-line bg-surface-2 p-5">
-            <h3 className="text-sm font-bold text-fg">Belum menemukan game yang kamu cari?</h3>
+            <h3 className="text-sm font-bold text-fg">Mencari produk lain?</h3>
             <p className="mt-1.5 text-sm text-fg-muted">
-              Lihat seluruh katalog kami atau minta admin menambahkan game baru.
+              Lihat seluruh {category.label.toLowerCase()} yang kami jual, atau telusuri katalog
+              lengkapnya sekaligus.
             </p>
-            <Link
-              href="/games"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-strong px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-hover"
-            >
-              Lihat Semua Game
-            </Link>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href={copy.parent.path}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-strong px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-hover"
+              >
+                Semua {category.label}
+              </Link>
+              <Link
+                href="/cari"
+                className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-bold text-fg-body hover:border-brand hover:text-brand-strong"
+              >
+                Cari produk lain
+              </Link>
+            </div>
           </div>
         </div>
       </section>

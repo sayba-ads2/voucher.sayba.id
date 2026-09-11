@@ -58,8 +58,12 @@ export const config = {
   matcher: [
     /*
      * Jalankan pada semua rute kecuali aset statis, gambar hasil optimasi,
-     * dan webhook (webhook harus bebas dari pemeriksaan sesi).
+     * webhook (harus bebas dari pemeriksaan sesi), dan saran pencarian.
+     *
+     * /api/search dipanggil pada tiap ketikan huruf di kotak cari. Memaksanya
+     * melewati pemeriksaan sesi Supabase berarti satu perjalanan jaringan
+     * tambahan per huruf — cukup untuk membuat saran terasa tersendat.
      */
-    '/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|api/webhook|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|api/webhook|api/cron|api/search|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)',
   ],
 };

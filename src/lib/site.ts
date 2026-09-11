@@ -45,6 +45,9 @@ export const site = {
     'beli pulsa online',
     'pulsa murah semua operator',
     'beli paket data murah',
+    'beli kuota internet',
+    'kartu perdana murah',
+    'kartu perdana internet',
     'token listrik pln online',
     'beli token listrik murah',
     'top up e-wallet',
@@ -52,6 +55,11 @@ export const site = {
     'voucher game murah',
     'voucher steam wallet',
     'voucher google play',
+    'langganan netflix murah',
+    'beli akun netflix legal',
+    'spotify premium murah',
+    'youtube premium murah',
+    'disney plus hotstar murah',
     'top up game murah',
     'top up mobile legends',
     'top up free fire',
@@ -64,7 +72,14 @@ export const site = {
    * Slug game yang ditonjolkan di beranda. Kategori lain tetap punya halaman
    * sendiri dan tetap terindeks.
    */
-  homeGameSlugs: ['mobile-legends', 'free-fire', 'pubg-mobile'],
+  homeGameSlugs: [
+    'mobile-legends',
+    'free-fire',
+    'pubg-mobile',
+    'genshin-impact',
+    'honor-of-kings',
+    'roblox',
+  ],
 } as const;
 
 export type Site = typeof site;

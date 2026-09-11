@@ -37,7 +37,8 @@ export function SyncPanel() {
       if (action === 'sync') {
         const d = json.data;
         setMessage(
-          `Sinkron selesai: ${d.sellableProducts} produk dari ${d.fetched} di katalog, ${d.gamesCreated} brand baru dibuat (nonaktif).`,
+          `Sinkron selesai: ${d.sellableProducts} produk dari ${d.fetched} di katalog. ` +
+            `${d.gamesCreated} brand baru dibuat, ${d.gamesActivated ?? 0} di antaranya langsung aktif di etalase.`,
         );
         router.refresh();
       } else if (action === 'recalculate') {

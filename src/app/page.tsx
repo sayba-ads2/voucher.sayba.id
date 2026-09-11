@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BadgeCheck,
   Clock3,
+  CreditCard,
   Gamepad2,
   Headphones,
   Lightbulb,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import { BannerCarousel, CardRail } from '@/components/carousel';
+import { SearchBox } from '@/components/search-box';
 import { GameCard } from '@/components/game-card';
 import { GameBrowser } from '@/components/game-browser';
 import { FaqAccordion } from '@/components/faq-accordion';
@@ -49,6 +51,7 @@ export const metadata: Metadata = {
 const CATEGORY_ICON: Record<CategoryKey, typeof Signal> = {
   pulsa: Signal,
   data: Wifi,
+  perdana: CreditCard,
   pln: Lightbulb,
   ewallet: Wallet,
   game: Gamepad2,
@@ -100,20 +103,53 @@ const STEPS = [
 ];
 
 export default async function HomePage() {
-  const [banners, pulsa, vouchers, homeGames, cheapest, testimonials, faqs, stats] =
-    await Promise.all([
-      getBanners(),
-      getGamesByKind('pulsa', 12),
-      getGamesByKind('voucher', 12),
-      getGamesBySlugs(site.homeGameSlugs),
-      getCheapestPriceByGame(),
-      getTestimonials(6),
-      getFaqs(8),
-      getSuccessStats(),
-    ]);
+  const [
+    banners,
+    pulsa,
+    paketData,
+    perdana,
+    hiburan,
+    vouchers,
+    allGames,
+    homeGames,
+    cheapest,
+    testimonials,
+    faqs,
+    stats,
+  ] = await Promise.all([
+    getBanners(),
+    getGamesByKind('pulsa', 12),
+    getGamesByKind('data', 12),
+    getGamesByKind('perdana', 12),
+    getGamesByKind('hiburan', 12),
+    getGamesByKind('voucher', 12),
+    getGamesByKind('game', 18),
+    getGamesBySlugs(site.homeGameSlugs),
+    getCheapestPriceByGame(),
+    getTestimonials(6),
+    getFaqs(8),
+    getSuccessStats(),
+  ]);
 
   const categories = homeCategories();
-  const searchable = [...pulsa, ...vouchers, ...homeGames];
+
+  // Game unggulan ditaruh di depan, lalu sisanya menyusul tanpa duplikat.
+  const featuredGames = [
+    ...homeGames,
+    ...allGames.filter((g) => !homeGames.some((h) => h.id === g.id)),
+  ].slice(0, 12);
+
+  // Katalog yang bisa dicari langsung dari beranda. Sengaja tidak seluruh
+  // katalog: daftar penuh ada di /cari yang dirender server, sedangkan di sini
+  // setiap baris ikut terkirim ke browser.
+  const searchable = Array.from(
+    new Map(
+      [...pulsa, ...paketData, ...perdana, ...hiburan, ...vouchers, ...featuredGames].map((g) => [
+        g.id,
+        g,
+      ]),
+    ).values(),
+  );
 
   return (
     <>
@@ -139,12 +175,19 @@ export default async function HomePage() {
               proses otomatis, tanpa perlu daftar akun.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            {/* Kotak cari, bukan tombol, yang jadi aksi utama: sebagian besar
+                pembeli datang dengan satu produk di kepala dan tidak ingin
+                menebak-nebak kategorinya lebih dulu. */}
+            <div className="mt-7 max-w-xl">
+              <SearchBox variant="hero" />
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="#kategori"
                 className="inline-flex items-center gap-2 rounded-xl bg-brand-strong px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-hover"
               >
-                Mulai Belanja
+                Lihat Semua Kategori
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
               <Link
@@ -189,7 +232,7 @@ export default async function HomePage() {
           Semua kebutuhan digital kamu, dikelompokkan supaya cepat ketemu.
         </p>
 
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {categories.map((category) => {
             const Icon = CATEGORY_ICON[category.key];
             return (
@@ -234,6 +277,52 @@ export default async function HomePage() {
         </div>
       )}
 
+
+      {/* ===================================================== PAKET DATA */}
+      {paketData.length > 0 && (
+        <div className="mx-auto max-w-6xl px-4 pt-12">
+          <CardRail
+            title="Paket Data & Kuota"
+            description="Kuota harian sampai bulanan, aktif tanpa kode dial."
+            action={
+              <Link
+                href="/paket-data"
+                className="hidden items-center gap-1 text-sm font-semibold text-brand-strong hover:underline sm:inline-flex"
+              >
+                Lihat semua
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
+            }
+          >
+            {paketData.map((brand) => (
+              <GameCard key={brand.id} game={brand} cheapest={cheapest[brand.id]} variant="rail" />
+            ))}
+          </CardRail>
+        </div>
+      )}
+
+      {/* ===================================================== KARTU PERDANA */}
+      {perdana.length > 0 && (
+        <div className="mx-auto max-w-6xl px-4 pt-12">
+          <CardRail
+            title="Kartu Perdana"
+            description="Nomor baru dengan kuota bawaan besar, siap pakai."
+            action={
+              <Link
+                href="/kartu-perdana"
+                className="hidden items-center gap-1 text-sm font-semibold text-brand-strong hover:underline sm:inline-flex"
+              >
+                Lihat semua
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
+            }
+          >
+            {perdana.map((brand) => (
+              <GameCard key={brand.id} game={brand} cheapest={cheapest[brand.id]} variant="rail" />
+            ))}
+          </CardRail>
+        </div>
+      )}
       {/* ============================================================ VOUCHER */}
       {vouchers.length > 0 && (
         <div className="mx-auto max-w-6xl px-4 pt-12">
@@ -257,8 +346,31 @@ export default async function HomePage() {
         </div>
       )}
 
+
+      {/* ===================================================== HIBURAN */}
+      {hiburan.length > 0 && (
+        <div className="mx-auto max-w-6xl px-4 pt-12">
+          <CardRail
+            title="Langganan Hiburan"
+            description="Netflix, Spotify, YouTube Premium, Disney+ dan lainnya — tanpa kartu kredit."
+            action={
+              <Link
+                href="/hiburan"
+                className="hidden items-center gap-1 text-sm font-semibold text-brand-strong hover:underline sm:inline-flex"
+              >
+                Lihat semua
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
+            }
+          >
+            {hiburan.map((brand) => (
+              <GameCard key={brand.id} game={brand} cheapest={cheapest[brand.id]} variant="rail" />
+            ))}
+          </CardRail>
+        </div>
+      )}
       {/* =============================================================== GAME */}
-      {homeGames.length > 0 && (
+      {featuredGames.length > 0 && (
         <div className="mx-auto max-w-6xl px-4 pt-12">
           <CardRail
             title="Top Up Game"
@@ -273,7 +385,7 @@ export default async function HomePage() {
               </Link>
             }
           >
-            {homeGames.map((game) => (
+            {featuredGames.map((game) => (
               <GameCard key={game.id} game={game} cheapest={cheapest[game.id]} variant="rail" />
             ))}
           </CardRail>
@@ -282,10 +394,22 @@ export default async function HomePage() {
 
       {/* =========================================================== PENCARIAN */}
       <section className="mx-auto max-w-6xl px-4 py-12">
-        <h2 className="text-lg font-bold tracking-tight text-fg sm:text-xl">Cari Cepat</h2>
-        <p className="mb-6 mt-1 text-sm text-fg-muted">
-          Ketik nama operator, brand, atau game untuk langsung membuka halaman pemesanannya.
-        </p>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-fg sm:text-xl">Cari Cepat</h2>
+            <p className="mt-1 text-sm text-fg-muted">
+              Ketik nama operator, brand, game, atau layanan langganan untuk langsung membuka
+              halaman pemesanannya.
+            </p>
+          </div>
+          <Link
+            href="/cari"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-strong hover:underline"
+          >
+            Telusuri seluruh katalog
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </div>
         <GameBrowser games={searchable} cheapest={cheapest} />
       </section>
 

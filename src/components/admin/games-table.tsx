@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Loader2, Pencil, Search } from 'lucide-react';
-import { toggleGameField, updateGame } from '@/app/admin/actions';
+import { ExternalLink, Loader2, Pencil, Power, PowerOff, Search } from 'lucide-react';
+import { bulkSetGameActive, toggleGameField, updateGame } from '@/app/admin/actions';
+import { getCategory, sortedCategories, type CategoryKey } from '@/lib/categories';
 import { cn } from '@/lib/utils';
 import type { Game } from '@/types';
 
@@ -174,30 +175,131 @@ function EditForm({ game, onDone }: { game: Game; onDone: () => void }) {
 
 export function GamesTable({ games }: { games: Game[] }) {
   const [query, setQuery] = useState('');
+  const [kind, setKind] = useState<CategoryKey | 'semua'>('semua');
+  const [status, setStatus] = useState<'semua' | 'aktif' | 'nonaktif'>('semua');
   const [editing, setEditing] = useState<string | null>(null);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const counts = useMemo(() => {
+    const map = new Map<CategoryKey, { total: number; active: number }>();
+    for (const game of games) {
+      const entry = map.get(game.kind) ?? { total: 0, active: 0 };
+      entry.total++;
+      if (game.is_active) entry.active++;
+      map.set(game.kind, entry);
+    }
+    return map;
+  }, [games]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return games;
-    return games.filter((g) => g.name.toLowerCase().includes(q) || g.slug.includes(q));
-  }, [games, query]);
+    return games.filter((g) => {
+      if (kind !== 'semua' && g.kind !== kind) return false;
+      if (status === 'aktif' && !g.is_active) return false;
+      if (status === 'nonaktif' && g.is_active) return false;
+      if (!q) return true;
+      return g.name.toLowerCase().includes(q) || g.slug.includes(q);
+    });
+  }, [games, query, kind, status]);
 
   function handleToggle(gameId: string, field: 'is_active' | 'is_featured', value: boolean) {
     startTransition(() => toggleGameField(gameId, field, value));
   }
 
+  function handleBulk(value: boolean) {
+    const scope = kind === 'semua' ? 'SEMUA kategori' : 'kategori ' + getCategory(kind).label;
+    const verb = value ? 'mengaktifkan' : 'menonaktifkan';
+    if (!window.confirm('Yakin ' + verb + ' seluruh brand di ' + scope + '?')) return;
+
+    setBulkMessage(null);
+    startTransition(async () => {
+      const result = await bulkSetGameActive(kind, value);
+      setBulkMessage(result.message);
+    });
+  }
+
   return (
     <div className="card-surface overflow-hidden">
-      <div className="relative border-b border-line p-3">
-        <Search className="pointer-events-none absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-faint" aria-hidden />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari game…"
-          aria-label="Cari game"
-          className="w-full rounded-lg border border-line bg-surface py-2.5 pl-10 pr-3 text-sm text-fg focus:border-brand-strong focus:outline-none"
-        />
+      <div className="space-y-3 border-b border-line p-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-faint" aria-hidden />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari brand…"
+            aria-label="Cari brand"
+            className="w-full rounded-lg border border-line bg-surface py-2.5 pl-10 pr-3 text-sm text-fg focus:border-brand-strong focus:outline-none"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="sr-only" htmlFor="filter-kind">
+            Saring kategori
+          </label>
+          <select
+            id="filter-kind"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as CategoryKey | 'semua')}
+            className="rounded-lg border border-line bg-surface px-2.5 py-2 text-xs font-medium text-fg-body focus:border-brand-strong focus:outline-none"
+          >
+            <option value="semua">Semua kategori ({games.length})</option>
+            {sortedCategories().map((category) => {
+              const count = counts.get(category.key);
+              if (!count) return null;
+              return (
+                <option key={category.key} value={category.key}>
+                  {category.label} ({count.active}/{count.total} aktif)
+                </option>
+              );
+            })}
+          </select>
+
+          <label className="sr-only" htmlFor="filter-status">
+            Saring status
+          </label>
+          <select
+            id="filter-status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as 'semua' | 'aktif' | 'nonaktif')}
+            className="rounded-lg border border-line bg-surface px-2.5 py-2 text-xs font-medium text-fg-body focus:border-brand-strong focus:outline-none"
+          >
+            <option value="semua">Aktif &amp; nonaktif</option>
+            <option value="aktif">Hanya aktif</option>
+            <option value="nonaktif">Hanya nonaktif</option>
+          </select>
+
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => handleBulk(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-success px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+            >
+              {pending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Power className="h-3.5 w-3.5" aria-hidden />
+              )}
+              Aktifkan semua
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => handleBulk(false)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-bold text-fg-body disabled:opacity-60"
+            >
+              <PowerOff className="h-3.5 w-3.5" aria-hidden />
+              Nonaktifkan semua
+            </button>
+          </div>
+        </div>
+
+        <p className="text-[11px] leading-relaxed text-fg-faint">
+          Tombol massal bekerja pada kategori yang sedang dipilih di atas. Saat mengaktifkan,
+          hanya brand yang punya produk siap jual yang ikut dinyalakan.
+          {bulkMessage && <span className="ml-1 font-semibold text-fg-body">{bulkMessage}</span>}
+        </p>
       </div>
 
       <ul className="divide-y divide-line">
@@ -219,7 +321,7 @@ export function GamesTable({ games }: { games: Game[] }) {
                   )}
                 </div>
                 <span className="block truncate font-mono text-[11px] text-fg-faint">
-                  /{game.slug} · {game.provider_operator ?? '—'}
+                  /{game.slug} · {getCategory(game.kind).short} · {game.provider_operator ?? '—'}
                 </span>
               </div>
 
@@ -259,7 +361,8 @@ export function GamesTable({ games }: { games: Game[] }) {
 
         {filtered.length === 0 && (
           <li className="px-4 py-12 text-center text-sm text-fg-faint">
-            Tidak ada game yang cocok. Jalankan sinkronisasi katalog lebih dulu.
+            Tidak ada brand yang cocok dengan saringan ini. Longgarkan saringannya, atau
+            jalankan sinkronisasi katalog lebih dulu.
           </li>
         )}
       </ul>

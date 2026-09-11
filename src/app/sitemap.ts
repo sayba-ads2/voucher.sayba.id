@@ -22,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily' as const,
       priority: category.showOnHome ? 0.9 : 0.6,
     })),
+    { url: `${site.url}/cari`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${site.url}/cara-order`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${site.url}/cek-pesanan`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${site.url}/tentang-kami`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },

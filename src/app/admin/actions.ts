@@ -6,6 +6,7 @@ import { getAdminSession } from '@/lib/supabase-route';
 import { getPricingConfig } from '@/lib/queries';
 import { calculateSellPrice } from '@/lib/pricing';
 import { recalculatePrices } from '@/lib/sync';
+import type { CategoryKey } from '@/lib/categories';
 
 /** Semua aksi di bawah ini wajib lewat gerbang ini lebih dulu. */
 async function requireAdmin() {
@@ -23,6 +24,78 @@ export async function toggleGameField(gameId: string, field: 'is_active' | 'is_f
   revalidatePath('/admin/games');
   revalidatePath('/');
   revalidatePath('/games');
+}
+
+/**
+ * Aktif/nonaktifkan seluruh brand dalam satu kategori sekaligus.
+ *
+ * Katalog distributor berisi ratusan brand. Menyalakannya satu per satu lewat
+ * sakelar bukan pekerjaan yang masuk akal, dan itulah sebabnya etalase bisa
+ * terlihat kosong berminggu-minggu setelah sinkronisasi pertama.
+ *
+ * Saat menyalakan, hanya brand yang benar-benar punya produk siap jual yang
+ * ikut — brand tanpa produk aktif hanya akan menghasilkan halaman kosong yang
+ * membuat pembeli mengira tokonya rusak.
+ */
+export async function bulkSetGameActive(
+  kind: CategoryKey | 'semua',
+  value: boolean,
+): Promise<ActionState> {
+  await requireAdmin();
+  const db = supabaseAdmin();
+
+  let query = db.from('games').select('id').eq('is_active', !value);
+  if (kind !== 'semua') query = query.eq('kind', kind);
+
+  const { data: candidates, error } = await query;
+  if (error) return { ok: false, message: error.message };
+
+  let ids = (candidates ?? []).map((row) => row.id as string);
+  if (ids.length === 0) {
+    return { ok: true, message: 'Tidak ada yang perlu diubah.' };
+  }
+
+  if (value) {
+    const withProducts = new Set<string>();
+    const CHUNK = 200;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const { data } = await db
+        .from('products')
+        .select('game_id')
+        .in('game_id', ids.slice(i, i + CHUNK))
+        .eq('is_active', true)
+        .eq('provider_status', 'ACTIVE')
+        .gt('sell_price', 0);
+      for (const row of data ?? []) {
+        if (row.game_id) withProducts.add(row.game_id as string);
+      }
+    }
+    ids = ids.filter((id) => withProducts.has(id));
+
+    if (ids.length === 0) {
+      return {
+        ok: false,
+        message: 'Tidak ada brand yang punya produk siap jual. Jalankan sinkronisasi katalog dulu.',
+      };
+    }
+  }
+
+  const CHUNK = 200;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error: updateError } = await db
+      .from('games')
+      .update({ is_active: value })
+      .in('id', ids.slice(i, i + CHUNK));
+    if (updateError) return { ok: false, message: updateError.message };
+  }
+
+  revalidatePath('/admin/games');
+  revalidatePath('/', 'layout');
+
+  return {
+    ok: true,
+    message: `${ids.length} brand ${value ? 'diaktifkan' : 'dinonaktifkan'}.`,
+  };
 }
 
 export async function updateGame(gameId: string, formData: FormData): Promise<ActionState> {

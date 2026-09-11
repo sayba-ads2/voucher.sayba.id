@@ -95,12 +95,16 @@ src/
     queries.ts            seluruh pembacaan data
     jsonld.tsx            structured data schema.org
     site.ts               identitas & kata kunci SEO
+    categories.ts         registri kategori + pemetaan kategori distributor
+    search.ts             aturan pencarian bersama (header, /cari, etalase)
+    brand-copy.ts         kata-kata halaman brand per kategori
 supabase/
   01_schema.sql           tabel, enum, trigger, RLS
   02_seed.sql             pengaturan awal, metode bayar, FAQ, testimoni, admin
   03_migration_...sql     satu game boleh memetakan beberapa operator NexShop
   04_migration_kind.sql   kolom kind pada tabel brand
   05_migration_...sql     perluas kind ke seluruh kategori (pulsa, PLN, dst.)
+  06_migration_...sql     kategori Kartu Perdana + aktivasi massal etalase
 docs/
   DEPLOY.md               panduan deploy langkah demi langkah
 ```

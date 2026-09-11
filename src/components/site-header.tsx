@@ -5,22 +5,20 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, MessageCircle, Receipt, X } from 'lucide-react';
 import { Logo } from './logo';
-import { CATEGORIES } from '@/lib/categories';
+import { SearchBox } from './search-box';
+import { sortedCategories } from '@/lib/categories';
 import { cn, waLink } from '@/lib/utils';
 
 /** Kategori yang muat di bilah navigasi; sisanya ada di menu dan footer. */
-const PRIMARY = ['pulsa', 'data', 'pln', 'game', 'voucher'];
+const PRIMARY = ['pulsa', 'data', 'perdana', 'game', 'hiburan'];
 
-const NAV = CATEGORIES.filter((c) => PRIMARY.includes(c.key))
-  .sort((a, b) => a.sort - b.sort)
+const NAV = sortedCategories()
+  .filter((c) => PRIMARY.includes(c.key))
   .map((c) => ({ href: `/${c.slug}`, label: c.short }));
 
 const MOBILE_NAV = [
   { href: '/', label: 'Beranda' },
-  ...CATEGORIES.sort((a, b) => a.sort - b.sort).map((c) => ({
-    href: `/${c.slug}`,
-    label: c.label,
-  })),
+  ...sortedCategories().map((c) => ({ href: `/${c.slug}`, label: c.label })),
   { href: '/cek-pesanan', label: 'Cek Pesanan' },
   { href: '/cara-order', label: 'Cara Order' },
 ];
@@ -36,12 +34,12 @@ export function SiteHeader({ whatsapp }: { whatsapp: string }) {
        tetap terlihat di kiri-kanan dan header terbaca sebagai satu objek. */
     <header className="on-ink sticky top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4">
       <div className="mx-auto max-w-6xl rounded-2xl bg-ink shadow-[0_6px_24px_-12px_rgb(26_26_28/0.45)] ring-1 ring-ink-line">
-        <div className="flex h-15 items-center justify-between gap-4 px-3 sm:px-5">
-          <Link href="/" aria-label={`Beranda`} className="shrink-0">
+        <div className="flex h-15 items-center justify-between gap-3 px-3 sm:px-5">
+          <Link href="/" aria-label="Beranda" className="shrink-0">
             <Logo tone="dark" />
           </Link>
 
-          <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Navigasi utama">
+          <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Navigasi utama">
             {NAV.map((item) => {
               const active = pathname.startsWith(item.href);
               return (
@@ -62,10 +60,16 @@ export function SiteHeader({ whatsapp }: { whatsapp: string }) {
             })}
           </nav>
 
+          {/* Kotak cari duduk di dalam bilah pada layar sedang ke atas — jalan
+              tercepat ke produk apa pun tanpa menebak kategorinya. */}
+          <div className="hidden min-w-0 flex-1 md:block lg:max-w-sm">
+            <SearchBox placeholder="Cari produk, operator, atau game…" />
+          </div>
+
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href="/cek-pesanan"
-              className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-cream-muted transition-colors hover:bg-ink-2 hover:text-cream sm:flex"
+              className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-cream-muted transition-colors hover:bg-ink-2 hover:text-cream lg:flex"
             >
               <Receipt className="h-4 w-4" aria-hidden />
               Lacak
@@ -82,7 +86,7 @@ export function SiteHeader({ whatsapp }: { whatsapp: string }) {
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
-              className="grid h-10 w-10 place-items-center rounded-lg text-cream transition-colors hover:bg-ink-2 lg:hidden"
+              className="grid h-10 w-10 place-items-center rounded-lg text-cream transition-colors hover:bg-ink-2 xl:hidden"
               aria-label={open ? 'Tutup menu' : 'Buka menu'}
               aria-expanded={open}
             >
@@ -91,8 +95,14 @@ export function SiteHeader({ whatsapp }: { whatsapp: string }) {
           </div>
         </div>
 
+        {/* Di ponsel kotak cari pindah ke baris sendiri, tetap selalu terlihat
+            tanpa perlu membuka menu lebih dulu. */}
+        <div className="px-3 pb-3 md:hidden">
+          <SearchBox placeholder="Cari: Netflix, kuota XL, MLBB…" />
+        </div>
+
         {open && (
-          <nav className="border-t border-ink-line px-3 pb-3 lg:hidden" aria-label="Navigasi seluler">
+          <nav className="border-t border-ink-line px-3 pb-3 xl:hidden" aria-label="Navigasi seluler">
             <ul className="grid grid-cols-2 gap-1 pt-2">
               {MOBILE_NAV.map((item) => (
                 <li key={item.href}>

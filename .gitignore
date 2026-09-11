@@ -1,0 +1,28 @@
+# Dependensi
+/node_modules
+/.pnp
+.pnp.js
+
+# Hasil build Next.js
+/.next/
+/out/
+/build
+next-env.d.ts.timestamp
+tsconfig.tsbuildinfo
+
+# Environment — jangan pernah ikut ter-commit
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# Log & berkas sistem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db

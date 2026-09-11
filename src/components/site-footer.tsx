@@ -76,6 +76,7 @@ export function SiteFooter({ games, whatsapp }: { games: Game[]; whatsapp: strin
             </ul>
 
             <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+              <li><Link href="/cari" className="hover:text-brand">Cari Produk</Link></li>
               <li><Link href="/cek-pesanan" className="hover:text-brand">Cek Pesanan</Link></li>
               <li><Link href="/cara-order" className="hover:text-brand">Cara Order</Link></li>
               <li><Link href="/tentang-kami" className="hover:text-brand">Tentang</Link></li>

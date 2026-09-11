@@ -81,7 +81,7 @@ export function websiteJsonLd() {
     publisher: { '@id': ORG_ID },
     potentialAction: {
       '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `${site.url}/?q={search_term_string}` },
+      target: { '@type': 'EntryPoint', urlTemplate: `${site.url}/cari?q={search_term_string}` },
       'query-input': 'required name=search_term_string',
     },
   };

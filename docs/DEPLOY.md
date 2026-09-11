@@ -58,7 +58,13 @@ menggantung bila webhook tidak sampai.
    Ini memperluas kategori ke pulsa, paket data, token listrik, e-wallet, tagihan, hiburan,
    dan e-toll. **Sangat disarankan**: tanpa migrasi ini situs tetap benar, tetapi setiap
    halaman harus memindai tabel produk untuk menebak kategori — jauh lebih lambat.
-8. Buka **Project Settings → API**, catat tiga nilai ini:
+8. Buat query keenam, tempel `supabase/06_migration_perdana_dan_aktivasi.sql`, klik **Run**.
+   Ini menambah kategori **Kartu Perdana**, memetakan ulang brand lama memakai aturan
+   kategori yang baru (termasuk nama kategori distributor yang dulu tidak dikenali dan
+   membuat produknya tidak muncul), lalu **mengaktifkan** semua brand yang benar-benar
+   punya produk siap jual. Tanpa migrasi ini etalase bisa tetap terlihat kosong meskipun
+   katalognya sudah tersinkron.
+9. Buka **Project Settings → API**, catat tiga nilai ini:
 
    | Label di dashboard | Nama environment variable |
    |---|---|

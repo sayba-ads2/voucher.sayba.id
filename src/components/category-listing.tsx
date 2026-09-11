@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { GameBrowser } from '@/components/game-browser';
 import { JsonLd, breadcrumbJsonLd } from '@/lib/jsonld';
 import { getCategory, homeCategories, type CategoryKey } from '@/lib/categories';
-import { getCheapestPriceByGame, getGamesByKind } from '@/lib/queries';
+import { getCheapestPriceByGame, getGamesByKind, getStoreSettings } from '@/lib/queries';
 import { site } from '@/lib/site';
+import { formatRupiah, waLink } from '@/lib/utils';
 
 /**
  * Halaman daftar untuk satu kategori.
@@ -19,6 +20,7 @@ export function categoryMetadata(key: CategoryKey): Metadata {
   return {
     title: `${category.label} — Harga Termurah, Proses Otomatis`,
     description: `${category.description} Bayar pakai QRIS, e-wallet, atau transfer bank. Berlaku untuk seluruh Indonesia.`,
+    keywords: category.keywords,
     alternates: { canonical: `/${category.slug}` },
     openGraph: {
       type: 'website',
@@ -31,12 +33,19 @@ export function categoryMetadata(key: CategoryKey): Metadata {
 
 export async function CategoryListing({ categoryKey }: { categoryKey: CategoryKey }) {
   const category = getCategory(categoryKey);
-  const [brands, cheapest] = await Promise.all([
+  const [brands, cheapest, store] = await Promise.all([
     getGamesByKind(categoryKey),
     getCheapestPriceByGame(),
+    getStoreSettings(),
   ]);
 
   const others = homeCategories().filter((c) => c.key !== categoryKey);
+  const whatsapp = store.whatsapp || site.contact.whatsapp;
+
+  // Harga termurah di seluruh kategori — angka konkret yang membuat judul
+  // halaman berhenti terdengar seperti janji kosong.
+  const prices = brands.map((b) => cheapest[b.id]).filter((p): p is number => Boolean(p));
+  const lowest = prices.length ? Math.min(...prices) : 0;
 
   return (
     <>
@@ -71,19 +80,44 @@ export async function CategoryListing({ categoryKey }: { categoryKey: CategoryKe
         </nav>
 
         <h1 className="text-2xl font-bold tracking-tight text-fg">{category.label}</h1>
-        <p className="mb-7 mt-2 max-w-2xl text-sm leading-relaxed text-fg-muted">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-fg-muted">
           {category.description}
         </p>
 
+        {brands.length > 0 && (
+          <p className="mb-7 mt-3 text-xs text-fg-faint">
+            {brands.length} pilihan tersedia
+            {lowest > 0 ? ` · mulai ${formatRupiah(lowest)}` : ''} · proses otomatis 24 jam
+          </p>
+        )}
+
         {brands.length > 0 ? (
-          <GameBrowser games={brands} cheapest={cheapest} />
+          <GameBrowser
+            games={brands}
+            cheapest={cheapest}
+            showCategoryFilter={false}
+            whatsapp={whatsapp}
+          />
         ) : (
           <div className="card-surface px-6 py-12 text-center">
-            <p className="text-sm font-semibold text-fg">Kategori ini belum diaktifkan</p>
-            <p className="mx-auto mt-1.5 max-w-md text-sm text-fg-muted">
-              Produknya sudah ada di database, tinggal diaktifkan dari dashboard admin.
-              Sementara itu, coba kategori lain di bawah.
+            <p className="text-sm font-semibold text-fg">
+              Produk {category.label.toLowerCase()} sedang disiapkan
             </p>
+            <p className="mx-auto mt-1.5 max-w-md text-sm text-fg-muted">
+              Kategori ini belum menampilkan pilihan. Coba kategori lain di bawah, atau tanyakan
+              produk yang kamu cari lewat WhatsApp — kami bantu carikan.
+            </p>
+            <a
+              href={waLink(
+                whatsapp,
+                `Halo admin Sayba, saya mau tanya produk ${category.label}.`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex rounded-lg bg-brand-strong px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-hover"
+            >
+              Tanya admin
+            </a>
           </div>
         )}
 

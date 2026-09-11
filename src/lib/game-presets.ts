@@ -366,6 +366,132 @@ export const GAME_PRESETS: GamePreset[] = [
     sortOrder: 35,
   },
   {
+    slug: 'netflix',
+    name: 'Netflix',
+    publisher: 'Netflix, Inc.',
+    aliases: ['netflix', 'voucher netflix', 'netflix premium', 'akun netflix'],
+    idLabel: 'Email Penerima',
+    idPlaceholder: 'nama@email.com',
+    shortDescription:
+      'Langganan Netflix resmi tanpa kartu kredit. Kode atau detail akses dikirim otomatis setelah pembayaran.',
+    howToOrder: [
+      'Pilih paket Netflix yang kamu inginkan (durasi dan jumlah layar).',
+      'Masukkan email aktif — ke sanalah kode voucher dikirim.',
+      'Pilih metode pembayaran dan selesaikan pembayaran.',
+      'Buka email, lalu tukarkan kodenya di netflix.com/redeem.',
+      'Kalau ada kendala penukaran, chat admin lewat WhatsApp.',
+    ],
+    featured: true,
+    sortOrder: 40,
+  },
+  {
+    slug: 'spotify',
+    name: 'Spotify Premium',
+    publisher: 'Spotify AB',
+    aliases: ['spotify', 'spotify premium', 'voucher spotify'],
+    idLabel: 'Email Penerima',
+    idPlaceholder: 'nama@email.com',
+    shortDescription: 'Langganan Spotify Premium tanpa iklan, bisa unduh lagu dan putar offline.',
+    featured: true,
+    sortOrder: 41,
+  },
+  {
+    slug: 'youtube-premium',
+    name: 'YouTube Premium',
+    publisher: 'Google',
+    aliases: ['youtube premium', 'youtube', 'voucher youtube'],
+    idLabel: 'Email Penerima',
+    idPlaceholder: 'nama@email.com',
+    shortDescription: 'YouTube tanpa iklan plus YouTube Music, aktif di semua perangkat kamu.',
+    featured: true,
+    sortOrder: 42,
+  },
+  {
+    slug: 'disney-plus-hotstar',
+    name: 'Disney+ Hotstar',
+    publisher: 'The Walt Disney Company',
+    aliases: ['disney', 'disney plus', 'disney+ hotstar', 'disney plus hotstar', 'hotstar'],
+    idLabel: 'Email / Nomor Akun',
+    idPlaceholder: 'nama@email.com',
+    shortDescription: 'Langganan Disney+ Hotstar: film Disney, Marvel, Star Wars, dan liga sepak bola.',
+    featured: true,
+    sortOrder: 43,
+  },
+  {
+    slug: 'vidio',
+    name: 'Vidio Platinum',
+    publisher: 'Vidio',
+    aliases: ['vidio', 'vidio platinum', 'vidio premier'],
+    idLabel: 'Email / Nomor Akun',
+    shortDescription: 'Paket Vidio untuk nonton Liga Inggris, sinetron, dan film Indonesia.',
+    sortOrder: 44,
+  },
+  {
+    slug: 'wetv',
+    name: 'WeTV VIP',
+    publisher: 'Tencent',
+    aliases: ['wetv', 'we tv', 'wetv vip'],
+    idLabel: 'Email / Nomor Akun',
+    shortDescription: 'Langganan WeTV VIP untuk drama Asia tanpa iklan.',
+    sortOrder: 45,
+  },
+  {
+    slug: 'viu',
+    name: 'Viu Premium',
+    publisher: 'PCCW Media',
+    aliases: ['viu', 'viu premium'],
+    idLabel: 'Email / Nomor Akun',
+    shortDescription: 'Viu Premium: drama Korea dengan subtitle Indonesia, tayang cepat.',
+    sortOrder: 46,
+  },
+  {
+    slug: 'iqiyi',
+    name: 'iQIYI VIP',
+    publisher: 'iQIYI',
+    aliases: ['iqiyi', 'iq iyi', 'iqiyi vip'],
+    idLabel: 'Email / Nomor Akun',
+    shortDescription: 'iQIYI VIP untuk drama China dan anime tanpa iklan.',
+    sortOrder: 47,
+  },
+  {
+    slug: 'prime-video',
+    name: 'Amazon Prime Video',
+    publisher: 'Amazon',
+    aliases: ['prime video', 'amazon prime', 'amazon prime video'],
+    idLabel: 'Email Penerima',
+    idPlaceholder: 'nama@email.com',
+    shortDescription: 'Langganan Prime Video untuk film dan serial eksklusif Amazon.',
+    sortOrder: 48,
+  },
+  {
+    slug: 'canva-pro',
+    name: 'Canva Pro',
+    publisher: 'Canva',
+    aliases: ['canva', 'canva pro', 'canva premium'],
+    idLabel: 'Email Penerima',
+    idPlaceholder: 'nama@email.com',
+    shortDescription: 'Canva Pro dengan seluruh template, stok foto, dan penghapus latar.',
+    sortOrder: 49,
+  },
+  {
+    slug: 'capcut-pro',
+    name: 'CapCut Pro',
+    publisher: 'ByteDance',
+    aliases: ['capcut', 'capcut pro'],
+    idLabel: 'Email / Nomor Akun',
+    shortDescription: 'CapCut Pro untuk edit video tanpa watermark dan efek lengkap.',
+    sortOrder: 50,
+  },
+  {
+    slug: 'bstation',
+    name: 'Bstation (Bilibili)',
+    publisher: 'Bilibili',
+    aliases: ['bstation', 'bilibili', 'b station'],
+    idLabel: 'Email / Nomor Akun',
+    shortDescription: 'Langganan Bstation untuk anime simulcast tanpa iklan.',
+    sortOrder: 51,
+  },
+  {
     slug: 'efootball',
     name: 'eFootball',
     publisher: 'Konami',
@@ -411,8 +537,9 @@ export function findPreset(operator: string): GamePreset | null {
  * halaman Paket Data tidak saling menimpa.
  */
 const BRAND_PREFIXES = [
-  'injek v.', 'injek v', 'voucher', 'pulsa', 'paket data', 'data', 'token',
-  'saldo', 'tagihan', 'act', 'transfer',
+  'injek v.', 'injek v', 'voucher', 'pulsa', 'kartu perdana', 'perdana',
+  'paket data', 'paket internet', 'paket', 'kuota', 'data', 'token',
+  'saldo', 'tagihan', 'langganan', 'act', 'transfer',
 ];
 
 function cleanBrandName(operator: string): string {
@@ -447,6 +574,7 @@ const SLUG_PREFIX: Partial<Record<CategoryKey, string>> = {
   data: 'paket-data',
   pln: 'token-listrik',
   ewallet: 'e-wallet',
+  perdana: 'kartu-perdana',
   tagihan: 'tagihan',
   etoll: 'e-toll',
 };
@@ -460,7 +588,9 @@ const CATEGORY_BLURB: Record<CategoryKey, (brand: string) => string> = {
   game: (b) => `Top up ${b} dengan harga distributor, tanpa perlu login akun.`,
   voucher: (b) => `Beli voucher ${b}, kode dikirim otomatis setelah pembayaran.`,
   tagihan: (b) => `Bayar tagihan ${b} kapan saja tanpa antre.`,
-  hiburan: (b) => `Beli langganan ${b} dengan harga bersaing.`,
+  perdana: (b) =>
+    `Kartu perdana ${b} dengan kuota bawaan besar, siap pakai begitu diaktifkan.`,
+  hiburan: (b) => `Berlangganan ${b} dengan harga bersaing, aktif tanpa kartu kredit.`,
   etoll: (b) => `Top up saldo ${b} untuk perjalanan tanpa antre.`,
   lainnya: (b) => `Beli produk ${b} dengan proses otomatis.`,
 };
@@ -478,7 +608,11 @@ export function buildGameRow(
   categoryKey: CategoryKey = 'game',
 ) {
   const category = getCategory(categoryKey);
-  const preset = categoryKey === 'game' || categoryKey === 'voucher' ? findPreset(operator) : null;
+  // Preset dipakai untuk kategori yang brand-nya punya identitas sendiri.
+  // Pulsa/kuota/tagihan tidak: di sana nama brand cukup dirapikan dari
+  // nama operator katalog.
+  const PRESET_CATEGORIES: CategoryKey[] = ['game', 'voucher', 'hiburan'];
+  const preset = PRESET_CATEGORIES.includes(categoryKey) ? findPreset(operator) : null;
   const idLabel = preset?.idLabel ?? category.targetLabel;
 
   const brandName = preset?.name ?? (categoryKey === 'game' ? operator : cleanBrandName(operator));

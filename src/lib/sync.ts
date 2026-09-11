@@ -2,7 +2,7 @@ import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { getProducts, type NexShopProduct } from './nexshop';
 import { buildGameRow } from './game-presets';
-import { mapProviderCategory, type CategoryKey } from './categories';
+import { getCategory, resolveProviderCategory, type CategoryKey } from './categories';
 import { calculateSellPrice } from './pricing';
 import { getPricingConfig } from './queries';
 
@@ -14,23 +14,25 @@ const EXCLUDED_OPERATORS = ['nonaktif', 'produk nonaktif'];
 
 /**
  * Menentukan apakah sebuah produk katalog kita jual, sekaligus kategorinya.
- * Kategori yang tidak dikenal registri (src/lib/categories.ts) dilewati.
+ *
+ * Kategori yang belum dikenal registri (src/lib/categories.ts) TIDAK lagi
+ * dibuang — ia jatuh ke "Lainnya". Sebelumnya produk seperti "Kartu Perdana"
+ * atau kategori baru dari distributor hilang tanpa jejak dari database, dan
+ * satu-satunya gejalanya adalah halaman kategori yang kosong tanpa sebab.
  */
 function classify(p: NexShopProduct): CategoryKey | null {
-  const category = mapProviderCategory(p.kategori ?? '');
-  if (!category) return null;
-
   const operator = (p.operator ?? '').trim().toLowerCase();
   if (!operator) return null;
   if (EXCLUDED_OPERATORS.some((bad) => operator.includes(bad))) return null;
 
-  return category.key;
+  return resolveProviderCategory(p.kategori ?? '').key;
 }
 
 export type SyncResult = {
   fetched: number;
   sellableProducts: number;
   gamesCreated: number;
+  gamesActivated: number;
   gamesTotal: number;
   operatorsMapped: number;
   productsUpserted: number;
@@ -38,6 +40,36 @@ export type SyncResult = {
   gamesRemoved: number;
   durationMs: number;
 };
+
+type ExistingProduct = {
+  kode_produk: string;
+  margin_type: 'percent' | 'fixed' | null;
+  margin_value: number | null;
+  is_active: boolean;
+  sort_order: number;
+  label: string | null;
+  is_promo: boolean;
+};
+
+/** Membaca seluruh tabel produk berhalaman — lihat catatan di pemanggilnya. */
+async function fetchAllExistingProducts(
+  db: ReturnType<typeof supabaseAdmin>,
+): Promise<ExistingProduct[]> {
+  const PAGE = 1000;
+  const out: ExistingProduct[] = [];
+
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await db
+      .from('products')
+      .select('kode_produk, margin_type, margin_value, is_active, sort_order, label, is_promo')
+      .range(offset, offset + PAGE - 1);
+
+    if (error || !data) break;
+    out.push(...(data as ExistingProduct[]));
+    if (data.length < PAGE) break;
+  }
+  return out;
+}
 
 /**
  * Menarik katalog NexShop lalu menyimpannya ke Supabase.
@@ -47,7 +79,10 @@ export type SyncResult = {
  *   Pintar") jatuh ke satu kartu etalase.
  * - Kategori diambil dari registri src/lib/categories.ts: pulsa, paket data,
  *   token listrik, e-wallet, game, voucher, tagihan, hiburan, dan e-toll.
- * - Brand baru dibuat NONAKTIF supaya kamu yang memilih mana yang dijual.
+ * - Brand baru dari kategori yang dikenal (pulsa, kuota, kartu perdana,
+ *   token listrik, e-wallet, game, voucher, hiburan, tagihan, e-toll)
+ *   langsung AKTIF agar etalase terisi sendiri; hanya kategori "Lainnya"
+ *   yang dibuat nonaktif untuk kamu periksa dulu.
  * - Penyuntingan manual kamu (nama, slug, label input, status aktif, margin)
  *   tidak pernah ditimpa sinkronisasi berikutnya.
  * - Harga jual dihitung ulang dari `harga_reseller` terbaru, bukan disalin.
@@ -122,6 +157,7 @@ export async function syncCatalog(): Promise<SyncResult> {
   const gameIdBySlug = new Map((existingGames ?? []).map((g) => [g.slug, g.id as string]));
 
   let gamesCreated = 0;
+  let gamesActivated = 0;
   for (const [slug, candidate] of bySlug) {
     const { operators, kind, kindVotes: _votes, ...row } = candidate;
     const known = gameIdBySlug.get(slug);
@@ -135,15 +171,44 @@ export async function syncCatalog(): Promise<SyncResult> {
       continue;
     }
 
-    const { data: inserted } = await db
+    // Brand baru langsung tampil kalau kategorinya jelas (pulsa, kuota, kartu
+    // perdana, hiburan, game, dan seterusnya). Hanya "Lainnya" — keranjang
+    // kategori tak dikenal — yang tetap dibuat nonaktif untuk kamu periksa
+    // dulu. Ini kebalikan dari perilaku lama, yang membuat seluruh katalog
+    // hasil sinkronisasi tidak terlihat sama sekali di etalase.
+    const activateOnCreate = getCategory(kind).autoActivate;
+
+    const payload = {
+      ...row,
+      ...operatorFields,
+      is_active: activateOnCreate,
+    };
+
+    let { data: inserted } = await db
       .from('games')
-      .insert({ ...row, ...operatorFields, ...(hasKind ? { kind } : {}), is_active: false })
+      .insert({ ...payload, ...(hasKind ? { kind } : {}) })
       .select('id, slug')
       .maybeSingle();
+
+    // Kategori baru ('perdana') ditolak batasan `kind` sampai migrasi 06
+    // dijalankan. Daripada menggagalkan seluruh sinkronisasi karena satu
+    // kategori, brand-nya tetap disimpan tanpa kolom kind dan dibiarkan
+    // nonaktif — migrasi 06 nanti yang memetakannya ke tempat yang benar.
+    let activated = activateOnCreate;
+    if (!inserted && hasKind) {
+      const retry = await db
+        .from('games')
+        .insert({ ...payload, is_active: false })
+        .select('id, slug')
+        .maybeSingle();
+      inserted = retry.data;
+      activated = false;
+    }
 
     if (inserted) {
       gameIdBySlug.set(inserted.slug as string, inserted.id as string);
       gamesCreated++;
+      if (activated) gamesActivated++;
     }
   }
 
@@ -159,10 +224,13 @@ export async function syncCatalog(): Promise<SyncResult> {
   const now = new Date().toISOString();
 
   // Margin per-produk dan status tampil yang sudah kamu atur harus bertahan.
-  const { data: existingProducts } = await db
-    .from('products')
-    .select('kode_produk, margin_type, margin_value, is_active, sort_order, label, is_promo');
-  const existingByCode = new Map((existingProducts ?? []).map((p) => [p.kode_produk, p]));
+  //
+  // Dibaca berhalaman: PostgREST memotong hasil di 1000 baris, dan katalog
+  // kita jauh lebih besar dari itu. Tanpa pemenggalan ini, setiap produk di
+  // luar halaman pertama kehilangan margin manual dan status nonaktifnya
+  // setiap kali sinkronisasi berjalan.
+  const existingProducts = await fetchAllExistingProducts(db);
+  const existingByCode = new Map(existingProducts.map((p) => [p.kode_produk, p]));
 
   const rows = sellable.map(({ product: p }) => {
     const prev = existingByCode.get(p.kode_produk);
@@ -203,7 +271,7 @@ export async function syncCatalog(): Promise<SyncResult> {
 
   // --- 4. Nonaktifkan produk yang sudah tidak ada di katalog ----------------
   const activeCodes = new Set(rows.map((r) => r.kode_produk));
-  const stale = (existingProducts ?? [])
+  const stale = existingProducts
     .filter((p) => !activeCodes.has(p.kode_produk))
     .map((p) => p.kode_produk);
 
@@ -255,6 +323,7 @@ export async function syncCatalog(): Promise<SyncResult> {
       sellable_products: sellable.length,
       games: bySlug.size,
       games_created: gamesCreated,
+      games_activated: gamesActivated,
     },
     updated_at: now,
   });
@@ -263,6 +332,7 @@ export async function syncCatalog(): Promise<SyncResult> {
     fetched: all.length,
     sellableProducts: sellable.length,
     gamesCreated,
+    gamesActivated,
     gamesTotal: bySlug.size,
     operatorsMapped: gameIdByOperator.size,
     productsUpserted,
